@@ -12,8 +12,8 @@ export class DoctorsService {
       },
     };
   }
-  findAll() {
-  return [
+  findAll(specialization?: string, name?: string) {
+  const doctors = [
     {
       id: 1,
       full_name: 'Dr John',
@@ -30,6 +30,39 @@ export class DoctorsService {
       experience_years: 8,
       bio: 'Skin specialist',
     },
+    {
+      id: 3,
+      full_name: 'Dr Alice',
+      specialization: 'Neurology',
+      qualification: 'MBBS, DM',
+      experience_years: 10,
+      bio: 'Brain specialist',
+    },
   ];
+
+  let filteredDoctors = doctors;
+
+  if (specialization) {
+    filteredDoctors = filteredDoctors.filter(
+      (doctor) =>
+        doctor.specialization.toLowerCase() ===
+        specialization.toLowerCase(),
+    );
+  }
+
+  if (name) {
+    filteredDoctors = filteredDoctors.filter((doctor) =>
+      doctor.full_name.toLowerCase().includes(name.toLowerCase()),
+    );
+  }
+
+  if (filteredDoctors.length === 0) {
+    return {
+      message: 'No doctors found',
+      data: [],
+    };
+  }
+
+  return filteredDoctors;
 }
 }
