@@ -16,9 +16,15 @@ import { PatientsModule } from './patients/patients.module';
       username: 'postgres',
       password: 'postgresql',
       database: 'schedula_db',
+
+      // ✅ BEST APPROACH
       autoLoadEntities: true,
+
+      // ✅ okay for internship MVP
       synchronize: true,
     }),
+
+    // ✅ feature modules
     UsersModule,
     AuthModule,
     DoctorsModule,

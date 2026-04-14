@@ -1,45 +1,33 @@
 import {
+  Body,
   Controller,
   Post,
   Get,
-  Body,
-  Req,
-  UseGuards,
   Query,
-  BadRequestException,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { DoctorsService } from './doctors.service';
-import { CreateDoctorDto } from './dto/create-doctor.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
 
 @Controller('doctors')
 export class DoctorsController {
   constructor(private readonly doctorsService: DoctorsService) {}
 
   @Post('onboard')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('doctor')
-  create(@Body() dto: CreateDoctorDto, @Req() req: any) {
-    return this.doctorsService.create(dto, req.user);
+  create(@Body() createDoctorDto: any) {
+    return this.doctorsService.create(createDoctorDto);
   }
+
   @Get()
-findAll(
-  @Query('specialization') specialization?: string,
-  @Query('name') name?: string,
-) {
-  if (
-    specialization &&
-    typeof specialization !== 'string'
+  findAll(
+    @Query('specialization') specialization?: string,
+    @Query('name') name?: string,
   ) {
-    throw new BadRequestException('Invalid specialization');
+    return this.doctorsService.findAll(specialization, name);
   }
 
-  if (name && typeof name !== 'string') {
-    throw new BadRequestException('Invalid doctor name');
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.doctorsService.remove(Number(id));
   }
-
-  return this.doctorsService.findAll(specialization, name);
-}
 }
