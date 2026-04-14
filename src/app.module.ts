@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-
+console.log('DATABASE URL:', process.env.DATABASE_URL);
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { DoctorsModule } from './doctors/doctors.module';
@@ -19,11 +18,11 @@ import { PatientsModule } from './patients/patients.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      autoLoadEntities: true,
-      synchronize: true,
       ssl: {
         rejectUnauthorized: false,
       },
+      autoLoadEntities: true,
+      synchronize: true,
     }),
 
     UsersModule,
