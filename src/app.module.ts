@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -9,22 +10,20 @@ import { PatientsModule } from './patients/patients.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'postgresql',
-      database: 'schedula_db',
-
-      // ✅ BEST APPROACH
-      autoLoadEntities: true,
-
-      // ✅ okay for internship MVP
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
 
-    // ✅ feature modules
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      autoLoadEntities: true,
+      synchronize: true,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    }),
+
     UsersModule,
     AuthModule,
     DoctorsModule,
