@@ -1,35 +1,52 @@
-import { Injectable } from '@nestjs/common';
-import { CreateDoctorDto } from './dto/create-doctor.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Like } from 'typeorm';
+import { Doctor } from '../entities/doctor.entity';
 
 @Injectable()
 export class DoctorsService {
-  create(createDoctorDto: CreateDoctorDto, user: any) {
+  constructor(
+    @InjectRepository(Doctor)
+    private doctorRepository: Repository<Doctor>,
+  ) {}
+
+  async create(createDoctorDto: any) {
+    const doctor = this.doctorRepository.create(createDoctorDto);
+    return await this.doctorRepository.save(doctor);
+  }
+
+  async findAll(specialization?: string, name?: string) {
+    const where: any = {};
+
+    if (specialization) {
+      where.specialization = Like(`%${specialization}%`);
+    }
+
+    if (name) {
+      where.full_name = Like(`%${name}%`);
+    }
+
+    const doctors = await this.doctorRepository.find({ where });
+
     return {
-      message: 'Doctor profile onboarded successfully',
-      doctor: {
-        user_id: user.sub,
-        ...createDoctorDto,
-      },
+      message: doctors.length
+        ? 'Doctors fetched successfully'
+        : 'No doctors found',
+      data: doctors,
     };
   }
-  findAll() {
-  return [
-    {
-      id: 1,
-      full_name: 'Dr John',
-      specialization: 'Cardiology',
-      qualification: 'MBBS',
-      experience_years: 5,
-      bio: 'Heart specialist',
-    },
-    {
-      id: 2,
-      full_name: 'Dr Smith',
-      specialization: 'Dermatology',
-      qualification: 'MBBS, MD',
-      experience_years: 8,
-      bio: 'Skin specialist',
-    },
-  ];
-}
+
+  async remove(id: number) {
+    const doctor = await this.doctorRepository.findOne({
+      where: { id },
+    });
+
+    if (!doctor) {
+      throw new NotFoundException('Doctor not found');
+    }
+
+    await this.doctorRepository.remove(doctor);
+
+    return { message: 'Doctor deleted successfully' };
+  }
 }
