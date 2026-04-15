@@ -1,3 +1,4 @@
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
@@ -16,18 +17,28 @@ export class AuthService {
   ) {}
 
   async signup(signupDto: SignupDto) {
-    const hashedPassword = await bcrypt.hash(signupDto.password, 10);
+  // 1. Check if the user already exists
+  const existingUser = await this.userRepository.findOne({
+    where: { email: signupDto.email },
+  });
 
-    const user = this.userRepository.create({
-      full_name: signupDto.full_name,
-      email: signupDto.email,
-      password_hash: hashedPassword,
-      role: signupDto.role,
-      mobile_number: signupDto.mobile_number,
-    });
-
-    return this.userRepository.save(user);
+  if (existingUser) {
+    throw new ConflictException('Email already exists');
   }
+
+  // 2. Continue with your existing logic
+  const hashedPassword = await bcrypt.hash(signupDto.password, 10);
+
+  const user = this.userRepository.create({
+    full_name: signupDto.full_name,
+    email: signupDto.email,
+    password_hash: hashedPassword,
+    role: signupDto.role,
+    mobile_number: signupDto.mobile_number,
+  });
+
+  return this.userRepository.save(user);
+}
 
   async login(loginDto: LoginDto) {
     const user = await this.userRepository.findOne({
