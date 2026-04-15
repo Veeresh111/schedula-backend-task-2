@@ -23,7 +23,7 @@ export class AuthService {
       email: signupDto.email,
       password_hash: hashedPassword,
       role: signupDto.role,
-      mobile_number: `${Date.now()}`,
+      mobile_number: signupDto.mobile_number,
     });
 
     return this.userRepository.save(user);
