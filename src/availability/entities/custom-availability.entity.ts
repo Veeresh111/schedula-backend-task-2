@@ -6,7 +6,7 @@ export class CustomAvailability {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Doctor)
+  @ManyToOne('Doctor')
   doctor: Doctor;
 
   @Column({ type: 'date' })

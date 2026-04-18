@@ -16,7 +16,7 @@ export class RecurringAvailability {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Doctor)
+  @ManyToOne('Doctor')
   doctor: Doctor;
 
   @Column({ type: 'enum', enum: DayOfWeek })
