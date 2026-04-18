@@ -10,21 +10,21 @@ import { Roles } from '../auth/roles.decorator';
 export class AvailabilityController {
   constructor(private readonly availabilityService: AvailabilityService) {}
 
-  // POST /availability/recurring
-  @Post('recurring')
+  // POST /availability/recurring/:doctorId
+  @Post('recurring/:doctorId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('doctor')
-  addRecurring(@Request() req, @Body() dto: CreateRecurringDto) {
-    // req.user.sub comes from your JWT token payload (the user's ID)
-    return this.availabilityService.addRecurring(req.user.sub, dto);
+  addRecurring(@Param('doctorId') doctorId: string, @Body() dto: CreateRecurringDto) {
+    // Now we use the ID from the URL instead of the Token
+    return this.availabilityService.addRecurring(+doctorId, dto);
   }
 
-  // POST /availability/custom
-  @Post('custom')
+  // POST /availability/custom/:doctorId
+  @Post('custom/:doctorId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('doctor')
-  addCustom(@Request() req, @Body() dto: CreateCustomDto) {
-    return this.availabilityService.addCustom(req.user.sub, dto);
+  addCustom(@Param('doctorId') doctorId: string, @Body() dto: CreateCustomDto) {
+    return this.availabilityService.addCustom(+doctorId, dto);
   }
 
   // GET /availability/:doctorId?date=YYYY-MM-DD
