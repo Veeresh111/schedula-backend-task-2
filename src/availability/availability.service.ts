@@ -1,10 +1,9 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm';
-import { RecurringAvailability, DayOfWeek } from './entities/recurring-availability.entity';
+import { Repository } from 'typeorm';
+import { RecurringAvailability } from './entities/recurring-availability.entity';
 import { CustomAvailability } from './entities/custom-availability.entity';
-import { CreateRecurringDto } from './dto/create-recurring.dto';
-import { CreateCustomDto } from './dto/create-custom.dto';
+import { Booking } from '../bookings/entities/booking.entity';
 
 @Injectable()
 export class AvailabilityService {
@@ -13,84 +12,66 @@ export class AvailabilityService {
     private recurringRepo: Repository<RecurringAvailability>,
     @InjectRepository(CustomAvailability)
     private customRepo: Repository<CustomAvailability>,
+    @InjectRepository(Booking)
+    private bookingRepo: Repository<Booking>,
   ) {}
 
-  // 1. Add Recurring Availability
-  async addRecurring(doctorId: number, dto: CreateRecurringDto) {
-    // Check for overlapping times on the same day
-    const overlap = await this.recurringRepo.findOne({
-      where: {
-        doctor: { id: doctorId },
-        dayOfWeek: dto.dayOfWeek,
-        startTime: LessThan(dto.endTime),
-        endTime: MoreThan(dto.startTime),
-      },
-    });
-
-    if (overlap) {
-      throw new ConflictException('Time window overlaps with existing recurring availability');
-    }
-
-    const newAvailability = this.recurringRepo.create({
-      doctor: { id: doctorId },
-      dayOfWeek: dto.dayOfWeek,
-      startTime: dto.startTime,
-      endTime: dto.endTime,
-    });
-
-    return this.recurringRepo.save(newAvailability);
+  async addRecurring(doctorId: number, dto: any) {
+    const existing = await this.recurringRepo.findOne({ where: { doctorId, dayOfWeek: dto.dayOfWeek } });
+    if (existing) throw new ConflictException('Schedule already exists for this day');
+    return this.recurringRepo.save(this.recurringRepo.create({ ...dto, doctorId }));
   }
 
-  // 2. Add Custom Availability (Override)
-  async addCustom(doctorId: number, dto: CreateCustomDto) {
-    // Check for overlapping times on the same specific date
-    const overlap = await this.customRepo.findOne({
-      where: {
-        doctor: { id: doctorId },
-        date: dto.date,
-        startTime: LessThan(dto.endTime),
-        endTime: MoreThan(dto.startTime),
-      },
-    });
-
-    if (overlap) {
-      throw new ConflictException('Time window overlaps with existing custom availability');
-    }
-
-    const newCustom = this.customRepo.create({
-      doctor: { id: doctorId },
-      date: dto.date,
-      startTime: dto.startTime,
-      endTime: dto.endTime,
-    });
-
-    return this.customRepo.save(newCustom);
+  async addCustom(doctorId: number, dto: any) {
+    const existing = await this.customRepo.findOne({ where: { doctorId, date: dto.date } });
+    if (existing) throw new ConflictException('Custom availability exists for this date');
+    return this.customRepo.save(this.customRepo.create({ ...dto, doctorId }));
   }
 
-  // 3. Get Availability for a specific date (Handles the Override Logic)
-  async getAvailabilityForDate(doctorId: number, dateString: string) {
-    // First, check if there is a custom override for this exact date
-    const customAvailability = await this.customRepo.find({
-      where: { doctor: { id: doctorId }, date: dateString },
-      order: { startTime: 'ASC' },
-    });
-
-    // If custom availability exists, return it (ignoring recurring)
-    if (customAvailability.length > 0) {
-      return { type: 'custom', data: customAvailability };
+  async getAvailableSlots(doctorId: number, date: string, duration: number = 30) {
+    let availability: any = await this.customRepo.findOne({ where: { doctorId, date } });
+    
+    if (!availability) {
+      const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'LONG' }).toUpperCase();
+      availability = await this.recurringRepo.findOne({ where: { doctorId, dayOfWeek } });
     }
 
-    // If no custom override, figure out the day of the week
-    const dateObj = new Date(dateString);
-    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const dayOfWeek = days[dateObj.getDay()] as DayOfWeek;
+    if (!availability) return [];
 
-    // Fetch recurring availability for that day
-    const recurringAvailability = await this.recurringRepo.find({
-      where: { doctor: { id: doctorId }, dayOfWeek: dayOfWeek },
-      order: { startTime: 'ASC' },
+    const allSlots = this.generateSlots(availability.startTime, availability.endTime, duration);
+    const bookings = await this.bookingRepo.find({ where: { doctorId, date } });
+    const bookedStarts = bookings.map(b => b.startTime);
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    return allSlots.filter(slot => {
+      const isBooked = bookedStarts.includes(slot);
+      const isPast = (date === todayStr && this.timeToMinutes(slot) < currentMins);
+      return !isBooked && !isPast;
     });
+  }
 
-    return { type: 'recurring', data: recurringAvailability };
+  private generateSlots(start: string, end: string, duration: number): string[] {
+    const slots: string[] = [];
+    let current = this.timeToMinutes(start);
+    const finish = this.timeToMinutes(end);
+    while (current + duration <= finish) {
+      slots.push(this.minutesToTime(current));
+      current += duration;
+    }
+    return slots;
+  }
+
+  private timeToMinutes(time: string): number {
+    const [hrs, mins] = time.split(':').map(Number);
+    return hrs * 60 + mins;
+  }
+
+  private minutesToTime(totalMins: number): string {
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   }
 }
