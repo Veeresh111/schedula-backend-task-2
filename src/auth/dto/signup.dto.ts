@@ -3,4 +3,5 @@ export class SignupDto {
   email: string;
   password: string;
   role: string;
+  mobile_number: string;
 }

@@ -6,6 +6,7 @@ async function bootstrap() {
 
   app.enableCors();
 
-  await app.listen(process.env.PORT || 3000);
+  // Add '0.0.0.0' to explicitly tell Render how to route the traffic
+  await app.listen(process.env.PORT || 10000, '0.0.0.0');
 }
 bootstrap();
