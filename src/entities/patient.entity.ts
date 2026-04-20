@@ -1,19 +1,19 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('doctors')
-export class Doctor {
+@Entity('patients')
+export class Patient {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   full_name: string;
 
-  @Column()
-  specialization: string;
-
-  @Column()
-  bio: string;
-
   @Column('int')
-  consultation_fee: number;
+  age: number;
+
+  @Column()
+  gender: string;
+
+  @Column()
+  problem: string;
 }
